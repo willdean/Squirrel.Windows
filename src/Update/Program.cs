@@ -80,6 +80,7 @@ namespace Squirrel.Update
                 string appName = default(string);
                 string setupIcon = default(string);
                 string shortcutArgs = default(string);
+                int waitForPid = 0;
 
                 opts = new OptionSet() {
                     "Usage: Squirrel.exe command [OPTS]",
@@ -108,6 +109,7 @@ namespace Squirrel.Update
                     { "b=|baseUrl=", "Provides a base URL to prefix the RELEASES file packages with", v => baseUrl = v, true},
                     { "a=|process-start-args=", "Arguments that will be used when starting executable", v => processStartArgs = v, true},
                     { "l=|shortcut-locations=", "Comma-separated string of shortcut locations, e.g. 'Desktop,StartMenu'", v => shortcutArgs = v},
+                    { "waitForPid=", "PID of process which we must wait for before continuing with processStart", v => waitForPid = int.Parse(v)},
                 };
 
                 opts.Parse(args);
@@ -148,7 +150,7 @@ namespace Squirrel.Update
                     Deshortcut(target, shortcutArgs);
                     break;
                 case UpdateAction.ProcessStart:
-                    ProcessStart(processStart, processStartArgs);
+                    ProcessStart(processStart, processStartArgs, waitForPid);
                     break;
                 }
             }
@@ -448,14 +450,14 @@ namespace Squirrel.Update
             }
         }
 
-        public void ProcessStart(string exeName, string arguments)
+        public void ProcessStart(string exeName, string arguments, int pidToWaitFor)
         {
             if (String.IsNullOrWhiteSpace(exeName)) {
                 ShowHelp();
                 return;
             }
 
-            waitForParentToExit();
+            waitForProcessToExit(pidToWaitFor);
 
             // Find the latest installed version's app dir
             var appDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -507,6 +509,31 @@ namespace Squirrel.Update
                 if (handle == IntPtr.Zero) throw new Win32Exception();
 
                 NativeMethods.WaitForSingleObject(handle, 0xFFFFFFFF /*INFINITE*/);
+            } finally {
+                if (handle != IntPtr.Zero) NativeMethods.CloseHandle(handle);
+            }
+        }
+
+        void waitForProcessToExit(int pidToWaitFor)
+        {
+            if (pidToWaitFor == 0)
+            {
+                // Don't wait for anything
+                return;
+            }
+
+            this.Log().Info("Requested to wait for PID {0} to exit before continuing", pidToWaitFor);
+
+            var handle = default(IntPtr);
+            try {
+                handle = NativeMethods.OpenProcess(ProcessAccess.Synchronize, false, pidToWaitFor);
+                if (handle != IntPtr.Zero) {
+                    // Wait for the application to exit
+                    this.Log().Info("Waiting for PID {0} to exit before continuing", pidToWaitFor);
+                    NativeMethods.WaitForSingleObject(handle, 0xFFFFFFFF /*INFINITE*/);
+                }
+                // If the handle is zero, then we can assume the process has already exited and just push on anyway
+                this.Log().Info("PID {0} finished - continuing", pidToWaitFor);
             } finally {
                 if (handle != IntPtr.Zero) NativeMethods.CloseHandle(handle);
             }

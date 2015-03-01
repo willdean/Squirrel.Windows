@@ -181,12 +181,8 @@ namespace Squirrel
 
             exiting = true;
 
-            Process.Start(getUpdateExe(), String.Format("--processStart {0} {1}", exeToStart, argsArg));
+            Process.Start(getUpdateExe(), String.Format("--processStart {0} {1} --waitForPid {2}", exeToStart, argsArg, Process.GetCurrentProcess().Id));
 
-            // NB: We have to give update.exe some time to grab our PID, but
-            // we can't use WaitForInputIdle because we probably don't have
-            // whatever WaitForInputIdle considers a message loop.
-            Thread.Sleep(500);
             Environment.Exit(0);
         }
 
