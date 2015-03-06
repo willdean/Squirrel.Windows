@@ -275,14 +275,14 @@ namespace Squirrel
             // At 100ms per attempt and 10 attempts, we'll waste a max of 1 second in here, on top
             // of whatever Directory.Delete takes - hopefully that's enough
             int attemptsRemaining = 10;
-            while (--attemptsRemaining > 0) {
+            while (attemptsRemaining-- > 0) {
                 try {
                     Directory.Delete(directoryPath, true);
-                    return;
+                    break;
                 }
                 catch (DirectoryNotFoundException) {
                     // It must have gone now 
-                    return; 
+                    break; 
                 }
                 catch (Exception ex) {
                     var message = String.Format("Error while deleting {0}, {1} attempts remaining", directoryPath, attemptsRemaining);
@@ -294,6 +294,7 @@ namespace Squirrel
                 // Delay in case we're waiting for Explorer windows to close, etc
                 await Task.Delay(100);
             }
+            Log().Info("Deleted directory {0} with {1} attempts still remaining", directoryPath, attemptsRemaining);
         }
 
         public static Tuple<string, Stream> CreateTempFile()
