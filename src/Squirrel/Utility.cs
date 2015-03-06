@@ -229,7 +229,6 @@ namespace Squirrel
                 }));
         }
 
-        static string directoryChars;
         public static IDisposable WithTempDirectory(out string path)
         {
             var di = new DirectoryInfo(Environment.GetEnvironmentVariable("SQUIRREL_TEMP") ?? Environment.GetEnvironmentVariable("TEMP") ?? "");
@@ -237,27 +236,30 @@ namespace Squirrel
                 throw new Exception("%TEMP% isn't defined, go set it");
             }
 
-            var tempDir = default(DirectoryInfo);
+            path = null;
+           
+            int attemptsRemaining = 10;
+            while(attemptsRemaining-- > 0) {
+                var target = Path.Combine(di.FullName, Guid.NewGuid().ToString());
 
-            directoryChars = directoryChars ?? (
-                "abcdefghijklmnopqrstuvwxyz" +
-                Enumerable.Range(0x4E00, 0x9FCC - 0x4E00)  // CJK UNIFIED IDEOGRAPHS
-                    .Aggregate(new StringBuilder(), (acc, x) => { acc.Append(Char.ConvertFromUtf32(x)); return acc; })
-                    .ToString());
-
-            foreach (var c in directoryChars) {
-                var target = Path.Combine(di.FullName, c.ToString());
-
-                if (!File.Exists(target) && !Directory.Exists(target)) {
+                // Try and create the directory - if we succeed, then we've got it OK
+                try {
                     Directory.CreateDirectory(target);
-                    tempDir = new DirectoryInfo(target);
+                    path = Path.GetFullPath(target);
                     break;
+                } catch (Exception ex) {
+                    if(attemptsRemaining == 0) {
+                        Log().ErrorException(string.Format("Failed to create temp dir in {0}", di.FullName), ex);
+                        throw;
+                    }
+                    
+                    // Some problem 
+                    Log().InfoException(string.Format("Attempt to create temp dir {0} failed - will retry", target), ex);
                 }
             }
 
-            path = tempDir.FullName;
-
-            return Disposable.Create(() => Task.Run(async () => await DeleteDirectory(tempDir.FullName)).Wait());
+            string capturedPath = path;
+            return Disposable.Create(() => Task.Run(async () => await DeleteDirectory(capturedPath)).Wait());
         }
 
         /// <summary>
