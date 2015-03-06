@@ -445,11 +445,26 @@ namespace Squirrel.Tests
             }
         }
 
+        class ConsoleLogger : Splat.ILogger
+        {
+            public void Write(string message, LogLevel logLevel)
+            {
+                Console.WriteLine(message);
+            }
+
+            public LogLevel Level
+            {
+                get; set;
+            }
+        }
+
         [Fact]
         public async Task CreateShortcutsRoundTrip()
         {
             string remotePkgPath;
             string path;
+            
+            Locator.CurrentMutable.Register(() => new ConsoleLogger(), typeof(Splat.ILogger));
 
             using (Utility.WithTempDirectory(out path)) {
                 using (Utility.WithTempDirectory(out remotePkgPath))
