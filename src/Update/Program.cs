@@ -199,7 +199,7 @@ namespace Squirrel.Update
                 this.ErrorIfThrows(() => File.Copy(Assembly.GetExecutingAssembly().Location, updateTarget, true),
                     "Failed to copy Update.exe to " + updateTarget);
 
-                await mgr.FullInstall(silentInstall, progressSource.Raise);
+                await mgr.FullInstall(silentInstall, new Progress<int>(progressSource.Raise));
 
                 await this.ErrorIfThrows(() => mgr.CreateUninstallerRegistryEntry(),
                     "Failed to create uninstaller registry entry");
@@ -221,9 +221,9 @@ namespace Squirrel.Update
 
             retry:
                 try {
-                    var updateInfo = await mgr.CheckForUpdate(ignoreDeltaUpdates: ignoreDeltaUpdates, progress: x => Console.WriteLine(x / 3));
-                    await mgr.DownloadReleases(updateInfo.ReleasesToApply, x => Console.WriteLine(33 + x / 3));
-                    await mgr.ApplyReleases(updateInfo, x => Console.WriteLine(66 + x / 3));
+                    var updateInfo = await mgr.CheckForUpdate(ignoreDeltaUpdates: ignoreDeltaUpdates, progress: new Progress<int>(x => Console.WriteLine(x / 3)));
+                    await mgr.DownloadReleases(updateInfo.ReleasesToApply, new Progress<int>(x => Console.WriteLine(33 + x / 3)));
+                    await mgr.ApplyReleases(updateInfo, new Progress<int>(x => Console.WriteLine(66 + x / 3)));
                 } catch (Exception ex) {
                     if (ignoreDeltaUpdates) {
                         this.Log().ErrorException("Really couldn't apply updates!", ex);
@@ -282,8 +282,8 @@ namespace Squirrel.Update
 
             this.Log().Info("Fetching update information, downloading from " + updateUrl);
             using (var mgr = new UpdateManager(updateUrl, appName, FrameworkVersion.Net45, ourDir)) {
-                var updateInfo = await mgr.CheckForUpdate(progress: x => Console.WriteLine(x / 3));
-                await mgr.DownloadReleases(updateInfo.ReleasesToApply, x => Console.WriteLine(33 + x / 3));
+                var updateInfo = await mgr.CheckForUpdate(progress: new Progress<int>(x => Console.WriteLine(x / 3)));
+                await mgr.DownloadReleases(updateInfo.ReleasesToApply, new Progress<int>(x => Console.WriteLine(33 + x / 3)));
 
                 var releaseNotes = updateInfo.FetchReleaseNotes();
 

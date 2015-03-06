@@ -59,31 +59,45 @@ namespace Squirrel
 
         }
 
-        public async Task<UpdateInfo> CheckForUpdate(bool ignoreDeltaUpdates = false, Action<int> progress = null)
+        /// <summary>
+        /// Make a simple Action delegate to wrap IProgress
+        /// </summary>
+        /// <param name="progress"></param>
+        /// <returns></returns>
+        static Action<int> MakeProgressAction(IProgress<int> progress)
+        {
+            if (progress != null) {
+                return progress.Report; 
+            } else {
+                return _ => { };
+            }
+        }
+
+        public async Task<UpdateInfo> CheckForUpdate(bool ignoreDeltaUpdates = false, IProgress<int> progress = null)
         {
             var checkForUpdate = new CheckForUpdateImpl(rootAppDirectory);
 
             await acquireUpdateLock();
-            return await checkForUpdate.CheckForUpdate(Utility.LocalReleaseFileForAppDir(rootAppDirectory), updateUrlOrPath, ignoreDeltaUpdates, progress, urlDownloader);
+            return await checkForUpdate.CheckForUpdate(Utility.LocalReleaseFileForAppDir(rootAppDirectory), updateUrlOrPath, ignoreDeltaUpdates, prog => progress.Report(prog), urlDownloader);
         }
 
-        public async Task DownloadReleases(IEnumerable<ReleaseEntry> releasesToDownload, Action<int> progress = null)
+        public async Task DownloadReleases(IEnumerable<ReleaseEntry> releasesToDownload, IProgress<int> progress = null)
         {
             var downloadReleases = new DownloadReleasesImpl(rootAppDirectory);
             await acquireUpdateLock();
 
-            await downloadReleases.DownloadReleases(updateUrlOrPath, releasesToDownload, progress, urlDownloader);
+            await downloadReleases.DownloadReleases(updateUrlOrPath, releasesToDownload, MakeProgressAction(progress), urlDownloader);
         }
 
-        public async Task<string> ApplyReleases(UpdateInfo updateInfo, Action<int> progress = null)
+        public async Task<string> ApplyReleases(UpdateInfo updateInfo, IProgress<int> progress = null)
         {
             var applyReleases = new ApplyReleasesImpl(applicationName, rootAppDirectory);
             await acquireUpdateLock();
 
-            return await applyReleases.ApplyReleases(updateInfo, false, false, progress);
+            return await applyReleases.ApplyReleases(updateInfo, false, false, MakeProgressAction(progress));
         }
 
-        public async Task FullInstall(bool silentInstall = false, Action<int> progress = null)
+        public async Task FullInstall(bool silentInstall = false, IProgress<int> progress = null)
         {
             var updateInfo = await CheckForUpdate();
             await DownloadReleases(updateInfo.ReleasesToApply);
@@ -91,7 +105,7 @@ namespace Squirrel
             var applyReleases = new ApplyReleasesImpl(applicationName, rootAppDirectory);
             await acquireUpdateLock();
 
-            await applyReleases.ApplyReleases(updateInfo, silentInstall, true, progress);
+            await applyReleases.ApplyReleases(updateInfo, silentInstall, true, MakeProgressAction(progress));
         }
 
         public async Task FullUninstall()

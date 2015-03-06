@@ -35,7 +35,7 @@ namespace Squirrel
         /// will return values from 0-100 and Complete, or Throw</param>
         /// <returns>An UpdateInfo object representing the updates to install.
         /// </returns>
-        Task<UpdateInfo> CheckForUpdate(bool ignoreDeltaUpdates = false, Action<int> progress = null);
+        Task<UpdateInfo> CheckForUpdate(bool ignoreDeltaUpdates = false, IProgress<int> progress = null);
 
         /// <summary>
         /// Download a list of releases into the local package directory.
@@ -46,7 +46,7 @@ namespace Squirrel
         /// will return values from 0-100 and Complete, or Throw</param>
         /// <returns>A completion Observable - either returns a single 
         /// Unit.Default then Complete, or Throw</returns>
-        Task DownloadReleases(IEnumerable<ReleaseEntry> releasesToDownload, Action<int> progress = null);
+        Task DownloadReleases(IEnumerable<ReleaseEntry> releasesToDownload, IProgress<int> progress = null);
 
         /// <summary>
         /// Take an already downloaded set of releases and apply them, 
@@ -59,7 +59,7 @@ namespace Squirrel
         /// will return values from 0-100 and Complete, or Throw</param>
         /// <returns>The path to the installed application (i.e. the path where
         /// your package's contents ended up</returns>
-        Task<string> ApplyReleases(UpdateInfo updateInfo, Action<int> progress = null);
+        Task<string> ApplyReleases(UpdateInfo updateInfo, IProgress<int> progress = null);
 
         /// <summary>
         /// Completely Installs a targeted app
@@ -68,7 +68,7 @@ namespace Squirrel
         /// <param name="progress">A Observer which can be used to report Progress - 
         /// will return values from 0-100 and Complete, or Throw</param>
         /// <returns>Completion</returns>
-        Task FullInstall(bool silentInstall, Action<int> progress = null);
+        Task FullInstall(bool silentInstall, IProgress<int> progress = null);
 
         /// <summary>
         /// Completely uninstalls the targeted app
@@ -132,9 +132,9 @@ namespace Squirrel
 
     public static class EasyModeMixin
     {
-        public static async Task<ReleaseEntry> UpdateApp(this IUpdateManager This, Action<int> progress = null)
+        public static async Task<ReleaseEntry> UpdateApp(this IUpdateManager This, IProgress<int> progress = null)
         {
-            progress = progress ?? (_ => {});
+            progress = progress ?? new Progress<int>();
             This.Log().Info("Starting automatic update");
 
             bool ignoreDeltaUpdates = false;
@@ -143,15 +143,15 @@ namespace Squirrel
             var updateInfo = default(UpdateInfo);
 
             try {
-                updateInfo = await This.ErrorIfThrows(() => This.CheckForUpdate(ignoreDeltaUpdates, x => progress(x / 3)),
+                updateInfo = await This.ErrorIfThrows(() => This.CheckForUpdate(ignoreDeltaUpdates, new Progress<int>(x => progress.Report(x / 3))),
                     "Failed to check for updates");
 
                 await This.ErrorIfThrows(() =>
-                    This.DownloadReleases(updateInfo.ReleasesToApply, x => progress(x / 3 + 33)),
+                    This.DownloadReleases(updateInfo.ReleasesToApply, new Progress<int>(x => progress.Report(x / 3 + 33))),
                     "Failed to download updates");
 
                 await This.ErrorIfThrows(() =>
-                    This.ApplyReleases(updateInfo, x => progress(x / 3 + 66)),
+                    This.ApplyReleases(updateInfo, new Progress<int>(x => progress.Report(x / 3 + 66))),
                     "Failed to apply updates");
 
                 await This.ErrorIfThrows(() => 
