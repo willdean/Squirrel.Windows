@@ -91,7 +91,7 @@ namespace Squirrel
 
         public async Task<string> ApplyReleases(UpdateInfo updateInfo, IProgress<int> progress = null)
         {
-            var applyReleases = new ApplyReleasesImpl(applicationName, rootAppDirectory);
+            var applyReleases = new ApplyReleasesImpl(rootAppDirectory);
             await acquireUpdateLock();
 
             return await applyReleases.ApplyReleases(updateInfo, false, false, MakeProgressAction(progress));
@@ -102,7 +102,7 @@ namespace Squirrel
             var updateInfo = await CheckForUpdate();
             await DownloadReleases(updateInfo.ReleasesToApply);
 
-            var applyReleases = new ApplyReleasesImpl(applicationName, rootAppDirectory);
+            var applyReleases = new ApplyReleasesImpl(rootAppDirectory);
             await acquireUpdateLock();
 
             await applyReleases.ApplyReleases(updateInfo, silentInstall, true, MakeProgressAction(progress));
@@ -142,7 +142,7 @@ namespace Squirrel
 
         public void RemoveShortcutsForExecutable(string exeName, ShortcutLocation locations)
         {
-            var installHelpers = new ApplyReleasesImpl(applicationName, rootAppDirectory);
+            var installHelpers = new ApplyReleasesImpl(rootAppDirectory);
             installHelpers.RemoveShortcutsForExecutable(exeName, locations);
         }
 
