@@ -110,7 +110,7 @@ namespace Squirrel
 
         public async Task FullUninstall()
         {
-            var applyReleases = new ApplyReleasesImpl(applicationName, rootAppDirectory);
+            var applyReleases = new ApplyReleasesImpl(rootAppDirectory);
             await acquireUpdateLock();
 
             await applyReleases.FullUninstall();
@@ -136,7 +136,7 @@ namespace Squirrel
 
         public void CreateShortcutsForExecutable(string exeName, ShortcutLocation locations, bool updateOnly)
         {
-            var installHelpers = new ApplyReleasesImpl(applicationName, rootAppDirectory);
+            var installHelpers = new ApplyReleasesImpl(rootAppDirectory);
             installHelpers.CreateShortcutsForExecutable(exeName, locations, updateOnly);
         }
 
