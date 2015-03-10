@@ -78,7 +78,7 @@ namespace Squirrel
             var checkForUpdate = new CheckForUpdateImpl(rootAppDirectory);
 
             await acquireUpdateLock();
-            return await checkForUpdate.CheckForUpdate(Utility.LocalReleaseFileForAppDir(rootAppDirectory), updateUrlOrPath, ignoreDeltaUpdates, prog => progress.Report(prog), urlDownloader);
+            return await checkForUpdate.CheckForUpdate(Utility.LocalReleaseFileForAppDir(rootAppDirectory), updateUrlOrPath, ignoreDeltaUpdates, MakeProgressAction(progress), urlDownloader);
         }
 
         public async Task DownloadReleases(IEnumerable<ReleaseEntry> releasesToDownload, IProgress<int> progress = null)
